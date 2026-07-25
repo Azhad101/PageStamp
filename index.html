@@ -273,7 +273,20 @@
                 <!-- Injected dynamically via JS -->
               </div>
 
-              <div class="page-footer-num">PAGE 02</div>
+              <!-- Page Turn Controls (appears once stamps span multiple pages) -->
+              <div id="stamp-page-controls" class="stamp-page-controls hidden">
+                <button type="button" id="btn-stamp-page-prev" class="page-turn-btn" title="Previous Page">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  <span>Prev</span>
+                </button>
+                <div class="page-dots" id="stamp-page-dots"><!-- Injected via JS --></div>
+                <button type="button" id="btn-stamp-page-next" class="page-turn-btn" title="Next Page">
+                  <span>Next</span>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+
+              <div class="page-footer-num" id="stamp-page-footer-num">PAGE 02</div>
             </div>
 
           </div>
