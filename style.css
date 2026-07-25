@@ -780,14 +780,66 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 .filter-btn.active, .filter-btn:hover { background: var(--ink-blue); color: #fff; transform: translateY(-1px); }
 .filter-btn:active { transform: scale(0.94); }
 
-/* Natural Organic Stamp Collage Grid */
+/* Natural Organic Stamp Collage Grid — fixed 2x3 (6 stamps) per page so
+   additional stamps turn to a new page instead of stretching the layout */
 .passport-stamp-collage {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(0, auto);
+  align-content: start;
   gap: 1.35rem;
   padding: 0.5rem 0;
-  flex: 1;
 }
+
+/* Page Turn Controls Bar */
+.stamp-page-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-parchment);
+}
+
+.page-turn-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-parchment-card);
+  border: 1px solid var(--border-parchment);
+  color: var(--ink-blue);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+.page-turn-btn:hover:not(:disabled) { background: var(--ink-blue); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(22, 36, 62, 0.18); }
+.page-turn-btn:active:not(:disabled) { transform: scale(0.95); }
+.page-turn-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.page-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.page-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(28, 59, 87, 0.2);
+  border: 1px solid rgba(28, 59, 87, 0.3);
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) ease;
+}
+.page-dot:hover { transform: scale(1.25); background: rgba(28, 59, 87, 0.4); }
+.page-dot.active { background: var(--ink-blue); border-color: var(--ink-blue); transform: scale(1.3); }
+
 
 .collage-stamp-card {
   background: var(--bg-parchment-card);
@@ -1082,12 +1134,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 .compass-needle { fill: var(--ink-red); }
 .compass-label { font-family: var(--font-heading); font-size: 11px; fill: var(--ink-blue); }
 
-.atlas-pin { cursor: pointer; transition: transform 0.25s var(--ease-spring); transform-origin: center bottom; }
-.atlas-pin:hover { transform: scale(1.25) translateY(-2px); }
+.atlas-pin { cursor: pointer; }
+.atlas-pin-hover-group { transition: transform 0.25s var(--ease-spring); transform-origin: center bottom; transform-box: fill-box; }
+.atlas-pin:hover .atlas-pin-hover-group { transform: scale(1.25) translateY(-2px); }
 .atlas-pin-drop { fill: rgba(107, 78, 43, 0.35); stroke: rgba(107, 78, 43, 0.5); stroke-width: 1; }
 .atlas-pin-emoji { font-size: 15px; text-anchor: middle; }
 .atlas-pin.unlocked .atlas-pin-drop { fill: var(--ink-red); stroke: var(--gold-bright); filter: drop-shadow(0 2px 4px rgba(139, 0, 0, 0.5)); }
-.atlas-pin.unlocked { animation: pinDrop 0.5s var(--ease-spring) backwards; }
+.atlas-pin.unlocked .atlas-pin-hover-group { animation: pinDrop 0.5s var(--ease-spring) backwards; transform-origin: center bottom; }
 @keyframes pinDrop { 0% { transform: translateY(-18px) scale(0.4); opacity: 0; } 60% { transform: translateY(3px) scale(1.15); opacity: 1; } 100% { transform: translateY(0) scale(1); } }
 
 .atlas-legend-header { font-family: var(--font-heading); font-size: 0.85rem; letter-spacing: 2px; color: var(--gold-primary); margin: 1.5rem 0 0.85rem; border-bottom: 1px solid rgba(212, 175, 55, 0.25); padding-bottom: 0.5rem; }
@@ -1095,6 +1148,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
 .atlas-legend-card { background: var(--bg-card-leather); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: var(--radius-md); padding: 0.9rem 1rem; display: flex; gap: 0.75rem; align-items: flex-start; transition: transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) ease; }
 .atlas-legend-card:hover { transform: translateY(-3px); border-color: var(--gold-bright); }
 .atlas-legend-card.just-unlocked { animation: milestonePop 0.7s var(--ease-spring); border-color: var(--gold-bright); box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25); }
+.atlas-legend-card.atlas-legend-unmapped { border-style: dashed; border-color: rgba(212, 175, 55, 0.4); opacity: 0.75; }
+.atlas-legend-card.atlas-legend-unmapped:hover { opacity: 1; }
 .atlas-legend-flag { font-size: 1.5rem; flex-shrink: 0; }
 .atlas-legend-country { font-family: var(--font-heading); font-size: 0.85rem; color: var(--gold-bright); letter-spacing: 0.5px; }
 .atlas-legend-books { font-size: 0.75rem; color: rgba(245, 239, 230, 0.65); margin-top: 0.2rem; line-height: 1.4; }
@@ -1483,4 +1538,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-vis
   .sidebar { width: 260px; }
   .main-content { padding: 1.5rem; }
   .boot-3d-scene { width: 340px; height: 480px; }
+  .passport-stamp-collage { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .passport-stamp-collage { grid-template-columns: 1fr; }
+  .stamp-page-controls { flex-wrap: wrap; }
 }
