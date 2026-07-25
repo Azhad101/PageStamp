@@ -477,7 +477,12 @@
     function computeStats(appState) {
       const finished = appState.books.filter(b => b.status === 'finished');
       const moods = new Set(finished.map(b => b.moodTag).filter(Boolean));
-      const countries = new Set(finished.map(b => countryForBook(b).code));
+      const countries = new Set(
+        finished
+          .map(b => countryForBook(b))
+          .filter(Boolean)
+          .map(c => c.code)
+      );
       const goal = Math.max(1, appState.profile.yearlyGoal || 1);
       const genresUnlocked = GenreVisas.CATALOG.filter(v => GenreVisas.progressForVisa(appState.books, v).unlocked).length;
       return {
@@ -596,8 +601,11 @@
     souvenirs: loadSouvenirsRaw(),
     activeView: 'home',
     activeStampFilter: 'all',
+    activeStampPage: 1,
     pendingFinishBookId: null
   };
+
+  const STAMPS_PER_PAGE = 6;
 
   function loadProfile() {
     try {
@@ -679,6 +687,11 @@
     homeCurrentBookContainer: document.getElementById('home-current-book-container'),
     passportCollageContainer: document.getElementById('passport-collage-container'),
     stampFilterBtns: document.querySelectorAll('.stamp-filters .filter-btn'),
+    stampPageControls: document.getElementById('stamp-page-controls'),
+    stampPageDots: document.getElementById('stamp-page-dots'),
+    btnStampPagePrev: document.getElementById('btn-stamp-page-prev'),
+    btnStampPageNext: document.getElementById('btn-stamp-page-next'),
+    stampPageFooterNum: document.getElementById('stamp-page-footer-num'),
     btnEditName: document.getElementById('btn-edit-name'),
     btnChangeAvatar: document.getElementById('btn-change-avatar'),
     
@@ -979,12 +992,26 @@
           <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="window.PageStamp.navigateTo('search')">Search Books</button>
         </div>
       `;
+      DOM.stampPageControls.classList.add('hidden');
+      DOM.stampPageFooterNum.textContent = 'PAGE 02';
       return;
     }
 
+    // Split the collected stamps into fixed-size pages (6 stamps each) so a
+    // new "passport page" is turned to instead of the collage stretching.
+    const totalPages = Math.max(1, Math.ceil(filtered.length / STAMPS_PER_PAGE));
+
+    // Clamp the active page in case books were removed/filtered down.
+    if (state.activeStampPage > totalPages) state.activeStampPage = totalPages;
+    if (state.activeStampPage < 1) state.activeStampPage = 1;
+
+    const startIdx = (state.activeStampPage - 1) * STAMPS_PER_PAGE;
+    const pageItems = filtered.slice(startIdx, startIdx + STAMPS_PER_PAGE);
+
     const angles = [-5, 4, -2, 6, -4, 3, -7, 5];
 
-    DOM.passportCollageContainer.innerHTML = filtered.map((book, idx) => {
+    DOM.passportCollageContainer.innerHTML = pageItems.map((book, idx) => {
+      const globalIdx = startIdx + idx;
       const angle = angles[idx % angles.length];
 
       let moodBadgeClass = 'mood-badge-loved';
@@ -995,7 +1022,7 @@
       return `
         <div class="collage-stamp-card" style="transform: rotate(${angle}deg);" onclick="window.PageStamp.openStampDetail('${book.id}')">
           <div class="stamp-header-row">
-            <span class="stamp-country-code">STAMP #${idx + 1}</span>
+            <span class="stamp-country-code">STAMP #${globalIdx + 1}</span>
             <span class="stamp-mood-badge ${moodBadgeClass}">${moodIcon} ${escapeHtml(book.moodTag || 'Finished')}</span>
           </div>
 
@@ -1014,6 +1041,35 @@
         </div>
       `;
     }).join('');
+
+    renderStampPageControls(totalPages);
+  }
+
+  function renderStampPageControls(totalPages) {
+    // Update the footer page number so it reads "PAGE 02", "PAGE 03", etc.
+    const pageNum = 1 + state.activeStampPage; // right page starts at "02"
+    DOM.stampPageFooterNum.textContent = `PAGE ${String(pageNum).padStart(2, '0')}`;
+
+    if (totalPages <= 1) {
+      DOM.stampPageControls.classList.add('hidden');
+      return;
+    }
+
+    DOM.stampPageControls.classList.remove('hidden');
+    DOM.btnStampPagePrev.disabled = state.activeStampPage === 1;
+    DOM.btnStampPageNext.disabled = state.activeStampPage === totalPages;
+
+    let dotsHtml = '';
+    for (let p = 1; p <= totalPages; p++) {
+      dotsHtml += `<button type="button" class="page-dot ${p === state.activeStampPage ? 'active' : ''}" data-page="${p}" title="Page ${p + 1}" onclick="window.PageStamp.goToStampPage(${p})"></button>`;
+    }
+    DOM.stampPageDots.innerHTML = dotsHtml;
+  }
+
+  function goToStampPage(pageNum) {
+    state.activeStampPage = pageNum;
+    const finishedBooks = state.books.filter(b => b.status === 'finished');
+    renderStampCollage(finishedBooks);
   }
 
   // ==========================================================================
@@ -1452,6 +1508,13 @@
       DOM.modalFinish.classList.add('hidden');
       DOM.animatedStampBadge.classList.remove('animate-stamp-down');
 
+      // Jump to whichever page the fresh stamp landed on, so the newest
+      // stamp is visible right away instead of staying on an old page.
+      state.activeStampFilter = 'all';
+      DOM.stampFilterBtns.forEach(b => b.classList.toggle('active', b.getAttribute('data-filter') === 'all'));
+      const finishedCount = state.books.filter(b => b.status === 'finished').length;
+      state.activeStampPage = Math.max(1, Math.ceil(finishedCount / STAMPS_PER_PAGE));
+
       switchView('home');
 
       // Celebrate: a small gold-and-ink burst from where the finish button lives, plus a toast.
@@ -1639,23 +1702,35 @@
 
   // ==========================================================================
   // 7. WORLD ATLAS — every finished book plants a pin on a literary map.
-  // Countries are assigned deterministically per book (same book always
-  // lands in the same place) using a simple string hash, so the map is
-  // stable across renders without needing real geodata per title.
+  // Countries are assigned by the AUTHOR'S nationality/origin — a curated
+  // lookup table of well-known authors mapped to the country they're most
+  // associated with. This is necessarily a curated list (Open Library's
+  // public search API does not expose reliable author nationality data),
+  // but it means the pins reflect real author origins rather than a random
+  // hash. Authors not in the table are grouped into an "Unmapped" bucket
+  // instead of being assigned a fake/incorrect country.
   // ==========================================================================
   const COUNTRY_ATLAS = [
     { code: 'us', name: 'United States', flag: '🇺🇸', x: 150, y: 95 },
     { code: 'ca', name: 'Canada', flag: '🇨🇦', x: 140, y: 55 },
     { code: 'mx', name: 'Mexico', flag: '🇲🇽', x: 128, y: 148 },
+    { code: 'co', name: 'Colombia', flag: '🇨🇴', x: 168, y: 245 },
     { code: 'br', name: 'Brazil', flag: '🇧🇷', x: 195, y: 280 },
     { code: 'ar', name: 'Argentina', flag: '🇦🇷', x: 172, y: 355 },
+    { code: 'cl', name: 'Chile', flag: '🇨🇱', x: 158, y: 340 },
     { code: 'is', name: 'Iceland', flag: '🇮🇸', x: 300, y: 28 },
+    { code: 'ie', name: 'Ireland', flag: '🇮🇪', x: 330, y: 55 },
     { code: 'gb', name: 'United Kingdom', flag: '🇬🇧', x: 345, y: 58 },
     { code: 'fr', name: 'France', flag: '🇫🇷', x: 355, y: 82 },
     { code: 'de', name: 'Germany', flag: '🇩🇪', x: 372, y: 62 },
+    { code: 'cz', name: 'Czech Republic', flag: '🇨🇿', x: 388, y: 68 },
     { code: 'es', name: 'Spain', flag: '🇪🇸', x: 333, y: 100 },
+    { code: 'pt', name: 'Portugal', flag: '🇵🇹', x: 318, y: 102 },
     { code: 'it', name: 'Italy', flag: '🇮🇹', x: 378, y: 100 },
     { code: 'se', name: 'Sweden', flag: '🇸🇪', x: 390, y: 38 },
+    { code: 'no', name: 'Norway', flag: '🇳🇴', x: 378, y: 30 },
+    { code: 'dk', name: 'Denmark', flag: '🇩🇰', x: 375, y: 50 },
+    { code: 'pl', name: 'Poland', flag: '🇵🇱', x: 400, y: 55 },
     { code: 'ru', name: 'Russia', flag: '🇷🇺', x: 560, y: 42 },
     { code: 'tr', name: 'Turkey', flag: '🇹🇷', x: 432, y: 105 },
     { code: 'eg', name: 'Egypt', flag: '🇪🇬', x: 402, y: 188 },
@@ -1671,9 +1746,62 @@
     { code: 'nz', name: 'New Zealand', flag: '🇳🇿', x: 758, y: 358 }
   ];
 
-  // Simple deterministic string hash (djb2-ish) shared by any feature that
-  // needs a stable "random" value derived from book text — flight codes,
-  // country assignment, etc.
+  // Authors not found in AUTHOR_COUNTRY_MAP are grouped into an "Unmapped
+  // Authors" legend card (see renderWorldAtlas) rather than guessing a
+  // country or plotting a fake pin on the map.
+
+  // Curated author -> country-code lookup. Keys are lowercased, punctuation-
+  // stripped author names. Extend this list as more authors show up.
+  const AUTHOR_COUNTRY_MAP = {
+    'frank herbert': 'us', 'f scott fitzgerald': 'us', 'ernest hemingway': 'us',
+    'mark twain': 'us', 'harper lee': 'us', 'toni morrison': 'us', 'john steinbeck': 'us',
+    'kurt vonnegut': 'us', 'stephen king': 'us', 'j d salinger': 'us', 'herman melville': 'us',
+    'edgar allan poe': 'us', 'ray bradbury': 'us', 'isaac asimov': 'us', 'ursula k le guin': 'us',
+    'andy weir': 'us', 'colson whitehead': 'us', 'louisa may alcott': 'us', 'jack kerouac': 'us',
+    'walt whitman': 'us', 'philip k dick': 'us', 'suzanne collins': 'us', 'donna tartt': 'us',
+    'cormac mccarthy': 'us', 'james baldwin': 'us', 'joseph heller': 'us', 'william faulkner': 'us',
+    'margaret atwood': 'ca', 'alice munro': 'ca', 'yann martel': 'ca', 'lucy maud montgomery': 'ca',
+    'george orwell': 'gb', 'j r r tolkien': 'gb', 'jane austen': 'gb', 'charles dickens': 'gb',
+    'virginia woolf': 'gb', 'agatha christie': 'gb', 'j k rowling': 'gb', 'aldous huxley': 'gb',
+    'william shakespeare': 'gb', 'the bronte sisters': 'gb', 'charlotte bronte': 'gb',
+    'emily bronte': 'gb', 'mary shelley': 'gb', 'oscar wilde': 'gb', 'c s lewis': 'gb',
+    'kazuo ishiguro': 'gb', 'ian mcewan': 'gb', 'neil gaiman': 'gb', 'terry pratchett': 'gb',
+    'philip pullman': 'gb', 'douglas adams': 'gb', 'h g wells': 'gb', 'arthur conan doyle': 'gb',
+    'daphne du maurier': 'gb', 'zadie smith': 'gb', 'kate morton': 'au', 'liane moriarty': 'au',
+    'james joyce': 'ie', 'samuel beckett': 'ie', 'bram stoker': 'ie',
+    'jonathan swift': 'ie', 'sally rooney': 'ie', 'cecelia ahern': 'ie',
+    'victor hugo': 'fr', 'albert camus': 'fr', 'antoine de saint exupery': 'fr',
+    'jules verne': 'fr', 'gustave flaubert': 'fr', 'marcel proust': 'fr', 'alexandre dumas': 'fr',
+    'moliere': 'fr', 'voltaire': 'fr', 'simone de beauvoir': 'fr', 'jean paul sartre': 'fr',
+    'johann wolfgang von goethe': 'de', 'franz kafka': 'cz', 'milan kundera': 'cz',
+    'thomas mann': 'de', 'hermann hesse': 'de', 'gunter grass': 'de', 'erich maria remarque': 'de',
+    'friedrich nietzsche': 'de', 'patrick suskind': 'de',
+    'gabriel garcia marquez': 'co', 'isabel allende': 'cl', 'pablo neruda': 'cl',
+    'jorge luis borges': 'ar', 'julio cortazar': 'ar', 'mario vargas llosa': 'ar',
+    'paulo coelho': 'br', 'jorge amado': 'br', 'clarice lispector': 'br',
+    'miguel de cervantes': 'es', 'carlos ruiz zafon': 'es', 'jose saramago': 'pt',
+    'fernando pessoa': 'pt', 'italo calvino': 'it', 'umberto eco': 'it', 'elena ferrante': 'it',
+    'dante alighieri': 'it', 'leo tolstoy': 'ru', 'fyodor dostoevsky': 'ru', 'anton chekhov': 'ru',
+    'alexander pushkin': 'ru', 'nikolai gogol': 'ru', 'ivan turgenev': 'ru', 'boris pasternak': 'ru',
+    'mikhail bulgakov': 'ru', 'vladimir nabokov': 'ru',
+    'orhan pamuk': 'tr', 'elif shafak': 'tr', 'naguib mahfouz': 'eg', 'chinua achebe': 'ng',
+    'chimamanda ngozi adichie': 'ng', 'wole soyinka': 'ng', 'ngugi wa thiongo': 'ke',
+    'nadine gordimer': 'za', 'j m coetzee': 'za', 'trevor noah': 'za',
+    'rabindranath tagore': 'in', 'arundhati roy': 'in', 'salman rushdie': 'in',
+    'jhumpa lahiri': 'in', 'r k narayan': 'in', 'vikram seth': 'in', 'amish tripathi': 'in',
+    'lu xun': 'cn', 'liu cixin': 'cn', 'amy tan': 'cn', 'mo yan': 'cn',
+    'haruki murakami': 'jp', 'natsume soseki': 'jp', 'yukio mishima': 'jp', 'banana yoshimoto': 'jp',
+    'han kang': 'kr', 'kyung sook shin': 'kr',
+    'khaled hosseini': 'us',
+    'astrid lindgren': 'se', 'stieg larsson': 'se', 'fredrik backman': 'se',
+    'henrik ibsen': 'no', 'jo nesbo': 'no', 'karl ove knausgaard': 'no',
+    'hans christian andersen': 'dk',
+    'markus zusak': 'au', 'tim winton': 'au',
+    'janet frame': 'nz', 'eleanor catton': 'nz'
+  };
+
+  // Deterministic string hash retained for cosmetic, non-geographic features
+  // (like flight codes) that just need a stable pseudo-random value.
   function hashString(str) {
     let hash = 0;
     const source = str || '';
@@ -1683,18 +1811,42 @@
     return hash;
   }
 
+  // Normalizes an author name for lookup: lowercase, turn periods/commas
+  // into spaces (so "J.R.R. Tolkien" and "J. R. R. Tolkien" match the same
+  // key), collapse whitespace. "F. Scott Fitzgerald" -> "f scott fitzgerald".
+  function normalizeAuthorName(author) {
+    return (author || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents: é -> e, etc.
+      .toLowerCase()
+      .replace(/[.,\-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Looks up the real country tied to a book's author. Returns null if the
+  // author isn't in the curated map — callers should treat that as
+  // "unmapped" rather than guessing a country.
   function countryForBook(book) {
-    const hash = hashString((book.title || '') + (book.author || ''));
-    return COUNTRY_ATLAS[hash % COUNTRY_ATLAS.length];
+    const key = normalizeAuthorName(book.author);
+    const code = AUTHOR_COUNTRY_MAP[key];
+    if (!code) return null;
+    return COUNTRY_ATLAS.find(c => c.code === code) || null;
   }
 
   function renderWorldAtlas() {
     const finishedBooks = state.books.filter(b => b.status === 'finished');
 
-    // Group finished books by the country they unlock.
+    // Group finished books by the real country their author is from.
+    // Books whose author isn't in the curated map land in an "unmapped"
+    // bucket instead of being assigned a fake/incorrect country.
     const byCountry = {};
+    let unmappedBooks = [];
     finishedBooks.forEach(book => {
       const country = countryForBook(book);
+      if (!country) {
+        unmappedBooks.push(book);
+        return;
+      }
       if (!byCountry[country.code]) byCountry[country.code] = { country, books: [] };
       byCountry[country.code].books.push(book);
     });
@@ -1707,7 +1859,9 @@
     const earnedSouvenirs = Souvenirs.evaluate(state, state.souvenirs, saveState);
     if (earnedSouvenirs.length) queueSouvenirReveals(earnedSouvenirs);
 
-    // Render pins — every country on the atlas gets a pin, dimmed if locked.
+    // Render pins — every real country on the atlas gets a pin, dimmed if
+    // locked. Unmapped books never get a map pin since we don't know where
+    // to place them; they only show up in the legend below.
     if (DOM.atlasPinsLayer) {
       DOM.atlasPinsLayer.innerHTML = COUNTRY_ATLAS.map(country => {
         const isUnlocked = !!byCountry[country.code];
@@ -1719,17 +1873,20 @@
         return `
           <g class="atlas-pin ${isUnlocked ? 'unlocked' : ''}" data-country="${country.code}" transform="translate(${country.x}, ${country.y})">
             <title>${escapeHtml(titleText)}</title>
-            <path class="atlas-pin-drop" d="M0,-16 C7,-16 12,-11 12,-4 C12,4 0,16 0,16 C0,16 -12,4 -12,-4 C-12,-11 -7,-16 0,-16 Z"></path>
-            <text class="atlas-pin-emoji" y="-2">${isUnlocked ? country.flag : '❔'}</text>
-            ${isUnlocked && bookCount > 1 ? `<circle cx="9" cy="-14" r="7" fill="var(--gold-bright)"></circle><text x="9" y="-11" text-anchor="middle" font-size="8" font-weight="700" fill="#2b1a1d">${bookCount}</text>` : ''}
+            <g class="atlas-pin-hover-group">
+              <path class="atlas-pin-drop" d="M0,-16 C7,-16 12,-11 12,-4 C12,4 0,16 0,16 C0,16 -12,4 -12,-4 C-12,-11 -7,-16 0,-16 Z"></path>
+              <text class="atlas-pin-emoji" y="-2">${isUnlocked ? country.flag : '❔'}</text>
+              ${isUnlocked && bookCount > 1 ? `<circle cx="9" cy="-14" r="7" fill="var(--gold-bright)"></circle><text x="9" y="-11" text-anchor="middle" font-size="8" font-weight="700" fill="#2b1a1d">${bookCount}</text>` : ''}
+            </g>
           </g>
         `;
       }).join('');
     }
 
-    // Render legend of discovered destinations below the map.
+    // Render legend of discovered destinations below the map, plus a
+    // separate "unmapped" card for authors we don't have origin data for.
     if (DOM.atlasLegend) {
-      if (unlockedCodes.length === 0) {
+      if (unlockedCodes.length === 0 && unmappedBooks.length === 0) {
         DOM.atlasLegend.innerHTML = `
           <div class="empty-state-card">
             <div class="empty-icon">🗺️</div>
@@ -1740,7 +1897,7 @@
         return;
       }
 
-      DOM.atlasLegend.innerHTML = unlockedCodes.map(code => {
+      let legendHtml = unlockedCodes.map(code => {
         const entry = byCountry[code];
         const bookList = entry.books.map(b => escapeHtml(b.title)).join(' • ');
         return `
@@ -1753,6 +1910,21 @@
           </div>
         `;
       }).join('');
+
+      if (unmappedBooks.length > 0) {
+        const unmappedList = unmappedBooks.map(b => escapeHtml(b.title)).join(' • ');
+        legendHtml += `
+          <div class="atlas-legend-card atlas-legend-unmapped" data-country="unmapped" title="We don't have origin data for this author yet">
+            <span class="atlas-legend-flag">❔</span>
+            <div>
+              <div class="atlas-legend-country">Unmapped Authors</div>
+              <div class="atlas-legend-books">${unmappedList}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      DOM.atlasLegend.innerHTML = legendHtml;
     }
   }
 
@@ -1813,9 +1985,27 @@
         DOM.stampFilterBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         state.activeStampFilter = btn.getAttribute('data-filter');
+        state.activeStampPage = 1; // reset to first page whenever the filter changes
         const finishedBooks = state.books.filter(b => b.status === 'finished');
         renderStampCollage(finishedBooks);
       });
+    });
+
+    DOM.btnStampPagePrev.addEventListener('click', () => {
+      if (state.activeStampPage > 1) {
+        goToStampPage(state.activeStampPage - 1);
+      }
+    });
+
+    DOM.btnStampPageNext.addEventListener('click', () => {
+      const finishedBooks = state.books.filter(b => b.status === 'finished');
+      const filtered = state.activeStampFilter === 'all'
+        ? finishedBooks
+        : finishedBooks.filter(b => b.moodTag === state.activeStampFilter);
+      const totalPages = Math.max(1, Math.ceil(filtered.length / STAMPS_PER_PAGE));
+      if (state.activeStampPage < totalPages) {
+        goToStampPage(state.activeStampPage + 1);
+      }
     });
 
     DOM.finishBookForm.addEventListener('submit', handleFinishFormSubmit);
@@ -1974,7 +2164,8 @@
     },
     deleteBook: (bookId) => deleteBook(bookId),
     openFinishModal: (bookId) => openFinishModal(bookId),
-    openStampDetail: (bookId) => openStampDetail(bookId)
+    openStampDetail: (bookId) => openStampDetail(bookId),
+    goToStampPage: (pageNum) => goToStampPage(pageNum)
   };
 
   document.addEventListener('DOMContentLoaded', () => {
