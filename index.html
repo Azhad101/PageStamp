@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PageStamp — Your Personal Reading Passport</title>
+  <meta name="description" content="A passport-inspired personal reading tracker for your book journey. Collect passport stamps, track progress, and log memories.">
+  
+  <!-- Google Fonts: Cinzel & Playfair Display for Official Passport Headings, Inter for Body -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="passport-theme">
+
+  <!-- ================= REALISTIC 3D PASSPORT BOOK OPENING ANIMATION ================= -->
+  <div id="passport-boot-screen" class="passport-boot-overlay">
+    <div class="boot-3d-scene">
+      <div class="passport-book-3d" id="passport-book-entity">
+        
+        <!-- Back Cover & Inner Right Page -->
+        <div class="book-back-base">
+          <div class="inner-page-right">
+            <div class="page-watermark">PAGE 01</div>
+            <div class="inner-welcome">
+              <div class="mini-crest-icon">✦</div>
+              <h3>REPUBLIC OF READING</h3>
+              <p>Opening expedition logbook...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Front Cover (Swings Open 180 deg) -->
+        <div class="book-front-cover" id="book-front-cover">
+          <!-- Front Exterior (Gold Foil Leather) -->
+          <div class="cover-face cover-front-face">
+            <div class="gold-crest">
+              <svg viewBox="0 0 100 100" class="gold-crest-svg">
+                <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="2"/>
+                <circle cx="50" cy="50" r="39" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 2"/>
+                <polygon points="50,15 62,38 87,41 68,58 73,83 50,70 27,83 32,58 13,41 38,38" fill="none" stroke="currentColor" stroke-width="2"/>
+                <text x="50" y="55" text-anchor="middle" font-family="'Cinzel', serif" font-size="11" font-weight="bold" fill="currentColor">PASSPORT</text>
+              </svg>
+            </div>
+            <h1 class="boot-country">REPUBLICA DE LECTURA</h1>
+            <h2 class="boot-subtitle">PERSONAL READING PASSPORT</h2>
+            <div class="boot-click-hint">Click to Open Passport</div>
+          </div>
+
+          <!-- Inside Front Cover Page -->
+          <div class="cover-face cover-inside-face">
+            <div class="inside-notice">
+              <p class="notice-title">OFFICIAL LOGBOOK</p>
+              <p class="notice-text">The holder of this Reading Passport is hereby requested to explore all literary realms and archive completed manuscripts.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Hover Hit Zone on Left Edge -->
+  <div id="sidebar-hit-zone" class="sidebar-hit-zone">
+    <div class="sidebar-peek-handle">
+      <span class="handle-icon">📖</span>
+      <span class="handle-text">PASSPORT MENU</span>
+    </div>
+  </div>
+
+  <!-- Main App Layout -->
+  <div class="app-layout">
+    
+    <!-- Sliding Off-canvas Navigation -->
+    <aside id="main-sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="passport-emblem">
+          <svg viewBox="0 0 100 100" class="emblem-svg">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2.5"/>
+            <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3"/>
+            <path d="M50 18 L55 35 L72 35 L58 46 L63 63 L50 52 L37 63 L42 46 L28 35 L45 35 Z" fill="currentColor"/>
+            <path d="M30 75 Q50 68 70 75" fill="none" stroke="currentColor" stroke-width="2"/>
+            <text x="50" y="86" text-anchor="middle" font-family="'Cinzel', serif" font-size="7" fill="currentColor" letter-spacing="1.5">PAGESTAMP</text>
+          </svg>
+        </div>
+        <h1 class="brand-title">PAGESTAMP</h1>
+        <p class="brand-subtitle">Official Reading Passport</p>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="home" id="nav-home">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </span>
+          <span class="nav-label">Passport & Visited Countries</span>
+        </button>
+
+        <button class="nav-item" data-view="search" id="nav-search">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
+          <span class="nav-label">Book Search</span>
+        </button>
+
+        <button class="nav-item" data-view="shelf" id="nav-shelf">
+          <span class="nav-icon nav-icon-emoji">🧳</span>
+          <span class="nav-label">Upcoming Destinations</span>
+        </button>
+
+        <button class="nav-item" data-view="reading" id="nav-reading">
+          <span class="nav-icon nav-icon-emoji">✈️</span>
+          <span class="nav-label">In Transit</span>
+        </button>
+
+        <button class="nav-item" data-view="challenge" id="nav-challenge">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="12 6 15.45 9.97 20.16 9.97 16.7 13.03 18.06 17.65 12 14.5 5.94 17.65 7.3 13.03 3.84 9.97 8.55 9.97 12 6"></polygon></svg>
+          </span>
+          <span class="nav-label">Visa Challenge</span>
+        </button>
+
+        <button class="nav-item" data-view="atlas" id="nav-atlas">
+          <span class="nav-icon nav-icon-emoji">🌍</span>
+          <span class="nav-label">World Atlas</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="passport-holder-chip">
+          <div class="holder-avatar" id="sidebar-avatar">📖</div>
+          <div class="holder-info">
+            <span class="holder-label">PASSPORT HOLDER</span>
+            <span class="holder-name" id="sidebar-holder-name">Bibliophile</span>
+          </div>
+        </div>
+        <button class="sound-toggle-btn" id="btn-toggle-sound" title="Toggle Passport Sound Effects">
+          <span id="sound-toggle-icon">🔊</span>
+          <span class="sound-toggle-label">Passport Sounds</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- Top Quick Header Bar -->
+      <div class="mobile-top-bar">
+        <button id="btn-toggle-sidebar" class="sidebar-menu-btn">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <span>Menu</span>
+        </button>
+        <span class="top-bar-title">PAGESTAMP</span>
+        <button id="btn-replay-boot" class="btn-icon-gold" title="Re-open Passport Animation">📖</button>
+      </div>
+
+      <!-- ================= 1. PASSPORT OPEN BOOKLET PAGE SPREAD (HOMEPAGE) ================= -->
+      <section id="view-home" class="view-section active">
+        
+        <!-- Authentic Passport Open Page Spread Container -->
+        <div class="passport-open-spread">
+          <div class="spine-crease-shadow"></div>
+          
+          <!-- Page Header Strip -->
+          <div class="passport-spread-header">
+            <div class="official-crest-sm">
+              <svg viewBox="0 0 100 100" class="gold-crest-svg-sm">
+                <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="2"/>
+                <polygon points="50,15 62,38 87,41 68,58 73,83 50,70 27,83 32,58 13,41 38,38" fill="none" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="passport-country-title">REPUBLICA DE LECTURA</h2>
+              <h3 class="passport-document-title">OFFICIAL READING PASSPORT & EXPEDITION STAMPS</h3>
+            </div>
+            <button id="btn-reopen-passport" class="btn btn-secondary btn-sm" style="margin-left: auto;">Close/Open Book</button>
+          </div>
+
+          <!-- 2-Page Passport Spread Grid -->
+          <div class="passport-pages-grid">
+            
+            <!-- LEFT PAGE: Passport Holder Data Page -->
+            <div class="passport-left-page">
+              <div class="page-section-header">PASSPORT HOLDER DATA PAGE</div>
+              
+              <!-- Holder ID Card -->
+              <div class="holder-id-card">
+                <div class="id-photo-frame">
+                  <div class="photo-placeholder" id="user-avatar-display">📖</div>
+                  <button class="edit-avatar-btn" id="btn-change-avatar" title="Change Avatar Emoji">✏️</button>
+                </div>
+                <div class="id-fields">
+                  <div class="id-row">
+                    <span class="field-label">PASSPORT HOLDER / NAME</span>
+                    <div class="editable-name-wrap">
+                      <span class="field-value" id="home-user-name">Bibliophile Explorer</span>
+                      <button class="edit-name-btn" id="btn-edit-name" title="Edit Name">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="id-row inline-fields">
+                    <div>
+                      <span class="field-label">PASSPORT NO.</span>
+                      <span class="field-value code-font" id="home-passport-num">BK-2026-8890</span>
+                    </div>
+                    <div>
+                      <span class="field-label">ISSUE DATE</span>
+                      <span class="field-value" id="home-issue-date">2026-07-24</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- MRZ Machine Readable Zone -->
+              <div class="mrz-zone">
+                <span id="mrz-line-1">P&lt;LECTURABIBLIOPHILE&lt;&lt;EXPLORER&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span>
+                <span id="mrz-line-2">BK202688904IND8507208M2607248&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;02</span>
+              </div>
+
+              <!-- Quick Stats Bar -->
+              <div class="cover-stats-grid">
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-finished-count">0</span>
+                  <span class="stat-label">PASSPORT STAMPS</span>
+                </div>
+                <div class="stat-box">
+                  <div class="challenge-ring-wrap">
+                    <svg class="progress-ring" width="46" height="46">
+                      <circle class="progress-ring-bg" stroke="rgba(28, 59, 87, 0.2)" stroke-width="4.5" fill="transparent" r="18" cx="23" cy="23"/>
+                      <circle class="progress-ring-circle" id="home-challenge-ring" stroke="var(--ink-red)" stroke-width="4.5" stroke-dasharray="113" stroke-dashoffset="113" fill="transparent" r="18" cx="23" cy="23"/>
+                    </svg>
+                    <span class="ring-text" id="home-challenge-percent">0%</span>
+                  </div>
+                  <span class="stat-label">YEARLY GOAL</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-number" id="stat-want-count">0</span>
+                  <span class="stat-label">PACKED FOR TRIP</span>
+                </div>
+              </div>
+
+              <!-- Currently Reading Mini Showcase -->
+              <div class="currently-reading-preview">
+                <div class="section-badge">✈️ IN TRANSIT NOW</div>
+                <div id="home-current-book-container">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
+              <div class="page-footer-num">PAGE 01</div>
+            </div>
+
+            <!-- RIGHT PAGE: Organic Stamp Collection Collage Page -->
+            <div class="passport-right-page">
+              
+              <div class="collage-header-strip">
+                <div class="collage-title">OFFICIAL EXPEDITION STAMPS</div>
+                
+                <!-- Mood Filter Chips -->
+                <div class="stamp-filters">
+                  <button class="filter-btn active" data-filter="all">All</button>
+                  <button class="filter-btn" data-filter="Loved it">Loved It ❤️</button>
+                  <button class="filter-btn" data-filter="It was okay">Okay 📖</button>
+                  <button class="filter-btn" data-filter="Not for me">Not For Me 💔</button>
+                </div>
+              </div>
+
+              <!-- Organic Stamp Collage Grid Container -->
+              <div id="passport-collage-container" class="passport-stamp-collage">
+                <!-- Injected dynamically via JS -->
+              </div>
+
+              <div class="page-footer-num">PAGE 02</div>
+            </div>
+
+          </div>
+
+          <div class="cover-footer-notice">
+            <span>✦ REPUBLIC OF READING — OFFICIAL PASSPORT LOGBOOK ✦</span>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= 2. BOOK SEARCH & ADD ================= -->
+      <section id="view-search" class="view-section">
+        <div class="page-header">
+          <h2 class="page-title">🎫 BOOK YOUR NEXT JOURNEY</h2>
+          <p class="page-description">Search the global departures board (Open Library) and reserve your next literary flight.</p>
+        </div>
+
+        <div class="search-box-card departures-board-card">
+          <div class="board-strip-header">
+            <span class="board-blink-dot"></span>
+            <span>DEPARTURES — WHERE TO NEXT?</span>
+          </div>
+          <form id="search-form" class="search-form">
+            <div class="input-with-icon">
+              <span class="search-input-icon ticket-icon">🎟️</span>
+              <input type="text" id="search-input" placeholder="Search by title, author, or subject (e.g. Dune, Jane Eyre, Haruki Murakami)..." required autocomplete="off">
+              <button type="button" id="search-clear-btn" class="clear-input-btn hidden">✕</button>
+            </div>
+            <button type="submit" class="btn btn-primary" id="btn-submit-search">
+              <span>✈️ Find Flights</span>
+            </button>
+          </form>
+
+          <div class="quick-genre-tags">
+            <span class="tag-label">Popular Destinations:</span>
+            <button class="chip-btn" data-query="Classic Literature">🏛️ Classic Literature</button>
+            <button class="chip-btn" data-query="Sci-Fi Fantasy">🚀 Sci-Fi Fantasy</button>
+            <button class="chip-btn" data-query="Mystery Thriller">🕵️ Mystery Thriller</button>
+            <button class="chip-btn" data-query="Non-Fiction History">🗺️ History</button>
+            <button class="chip-btn" data-query="Philosophy">📜 Philosophy</button>
+          </div>
+        </div>
+
+        <div id="search-status" class="status-message hidden"></div>
+        <div id="search-results-grid" class="books-grid">
+          <div class="empty-state-card">
+            <div class="empty-icon">🧭</div>
+            <h3>Where Would You Like to Go?</h3>
+            <p>Type a book title above to search the departures board for your next literary destination.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. WANT TO READ SHELF ================= -->
+      <section id="view-shelf" class="view-section">
+        <div class="page-header">
+          <h2 class="page-title">🧳 UPCOMING DESTINATIONS</h2>
+          <p class="page-description">Your leather suitcase — packed and waiting for the next journey to begin.</p>
+        </div>
+
+        <div class="boarding-gate-dropzone" id="boarding-gate-dropzone">
+          <div class="gate-icon">🛂</div>
+          <div class="gate-text">
+            <strong>Boarding Gate</strong>
+            <span>Drag a book here to begin your journey</span>
+          </div>
+        </div>
+
+        <div id="shelf-books-grid" class="books-grid suitcase-grid">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+      <!-- ================= 4. CURRENTLY READING ================= -->
+      <section id="view-reading" class="view-section">
+        <div class="page-header">
+          <h2 class="page-title">✈️ IN TRANSIT</h2>
+          <p class="page-description">Your flight is boarded — track the journey as it carries you toward the final page.</p>
+        </div>
+
+        <div id="reading-active-container">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+      <!-- ================= 5. READING CHALLENGE (VISA PAGE) ================= -->
+      <section id="view-challenge" class="view-section">
+        <div class="page-header flex-header">
+          <div>
+            <h2 class="page-title">READING VISA PAGE</h2>
+            <p class="page-description">Annual reading expedition goal & visa milestone badges.</p>
+          </div>
+
+          <div class="goal-setting-inline">
+            <label for="yearly-goal-input">Yearly Goal:</label>
+            <div class="goal-input-wrap">
+              <input type="number" id="yearly-goal-input" min="1" max="500" value="12">
+              <button id="btn-save-goal" class="btn btn-secondary btn-sm">Update Goal</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="visa-document-wrapper">
+          <div class="visa-header-strip">
+            <div class="visa-title-text">OFFICIAL READING VISA — EXPEDITION LOG</div>
+            <div class="visa-meta-text" id="visa-progress-text">0 / 12 Books Stamp Verified</div>
+          </div>
+
+          <div class="visa-milestones-container">
+            <h4 class="milestones-heading">EXPEDITION MILESTONES</h4>
+            <div class="milestones-grid">
+              <div class="milestone-card" id="milestone-25">
+                <div class="badge-icon">🥉</div>
+                <div class="badge-title">25% Explorer</div>
+                <div class="badge-status">Locked</div>
+              </div>
+              <div class="milestone-card" id="milestone-50">
+                <div class="badge-icon">🥈</div>
+                <div class="badge-title">50% Navigator</div>
+                <div class="badge-status">Locked</div>
+              </div>
+              <div class="milestone-card" id="milestone-75">
+                <div class="badge-icon">🥇</div>
+                <div class="badge-title">75% Scholar</div>
+                <div class="badge-status">Locked</div>
+              </div>
+              <div class="milestone-card" id="milestone-100">
+                <div class="badge-icon">👑</div>
+                <div class="badge-title">100% Globe Trotter</div>
+                <div class="badge-status">Locked</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="visa-stamp-slots-header">
+            <span>PASSPORT VISA ENTRY SLOTS</span>
+          </div>
+          <div id="visa-slots-grid" class="visa-slots-grid">
+            <!-- Mini visa stamp slots injected here -->
+          </div>
+        </div>
+
+        <!-- Postcards & Souvenirs Collection -->
+        <div class="souvenir-section">
+          <div class="souvenir-header-strip">
+            <span>🎁 SOUVENIR COLLECTION</span>
+            <span class="souvenir-count-text" id="souvenir-count-text">0 / 0 Collected</span>
+          </div>
+          <div id="souvenir-grid" class="souvenir-grid">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 6. WORLD ATLAS (LITERARY MAP) ================= -->
+      <section id="view-atlas" class="view-section">
+        <div class="page-header">
+          <h2 class="page-title">🌍 THE EXPLORER'S ATLAS</h2>
+          <p class="page-description">Every finished book plants a pin on your map. Where has your reading taken you?</p>
+        </div>
+
+        <div class="atlas-stats-bar">
+          <span class="atlas-stats-icon">📍</span>
+          <span><span id="atlas-countries-count">0</span> / <span id="atlas-countries-total">0</span> Countries Discovered</span>
+        </div>
+
+        <div class="atlas-map-wrapper">
+          <svg viewBox="0 0 800 400" class="atlas-map-svg" id="atlas-map-svg" xmlns="http://www.w3.org/2000/svg">
+            <!-- Vintage parchment grid (latitude / longitude lines) -->
+            <g class="atlas-grid-lines">
+              <line x1="0" y1="80" x2="800" y2="80"></line>
+              <line x1="0" y1="160" x2="800" y2="160"></line>
+              <line x1="0" y1="240" x2="800" y2="240"></line>
+              <line x1="0" y1="320" x2="800" y2="320"></line>
+              <line x1="100" y1="0" x2="100" y2="400"></line>
+              <line x1="230" y1="0" x2="230" y2="400"></line>
+              <line x1="360" y1="0" x2="360" y2="400"></line>
+              <line x1="490" y1="0" x2="490" y2="400"></line>
+              <line x1="620" y1="0" x2="620" y2="400"></line>
+              <line x1="750" y1="0" x2="750" y2="400"></line>
+            </g>
+
+            <!-- Stylized continent ink-blot landmasses (decorative, not geographically precise) -->
+            <g class="atlas-continents">
+              <ellipse cx="150" cy="90" rx="95" ry="65"></ellipse>
+              <ellipse cx="112" cy="152" rx="55" ry="42"></ellipse>
+              <ellipse cx="185" cy="290" rx="55" ry="95"></ellipse>
+              <ellipse cx="300" cy="26" rx="26" ry="13"></ellipse>
+              <ellipse cx="365" cy="70" rx="55" ry="35"></ellipse>
+              <ellipse cx="390" cy="240" rx="70" ry="95"></ellipse>
+              <ellipse cx="580" cy="120" rx="140" ry="80"></ellipse>
+              <ellipse cx="560" cy="195" rx="90" ry="55"></ellipse>
+              <ellipse cx="700" cy="335" rx="70" ry="40"></ellipse>
+            </g>
+
+            <!-- Decorative compass rose -->
+            <g class="atlas-compass" transform="translate(730,50)">
+              <circle r="26" class="compass-ring"></circle>
+              <path d="M0,-22 L6,0 L0,22 L-6,0 Z" class="compass-needle"></path>
+              <text y="-32" text-anchor="middle" class="compass-label">N</text>
+            </g>
+
+            <!-- Country pins injected here via JS -->
+            <g id="atlas-pins-layer"></g>
+          </svg>
+        </div>
+
+        <div class="atlas-legend-header">
+          <span>DISCOVERED DESTINATIONS</span>
+        </div>
+        <div id="atlas-legend" class="atlas-legend-grid">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================= MODAL: FINISH BOOK STAMPING FLOW ================= -->
+  <div id="modal-finish" class="modal-backdrop hidden">
+    <div class="modal-card stamp-modal">
+      <button class="modal-close-btn" id="btn-close-finish-modal">✕</button>
+      
+      <div class="stamp-modal-header">
+        <div class="header-emblem">✦</div>
+        <h2>PASSPORT STAMP VERIFICATION</h2>
+        <p>You have reached the end of this journey! Stamp your passport to permanently archive this achievement.</p>
+      </div>
+
+      <div class="stamp-interactive-area" id="stamp-target-canvas">
+        <div class="stamp-canvas-paper">
+          <div class="book-mini-preview">
+            <img id="finish-modal-cover" src="" alt="Book Cover" class="mini-cover-img">
+            <div>
+              <h3 id="finish-modal-title" class="finish-book-title">Book Title</h3>
+              <p id="finish-modal-author" class="finish-book-author">Author Name</p>
+              <span class="finish-date-tag" id="finish-modal-date">Date: 2026-07-24</span>
+            </div>
+          </div>
+
+          <div id="animated-stamp-badge" class="ink-stamp-overlay hidden">
+            <div class="stamp-ring">
+              <span class="stamp-top-text">PASSPORT VERIFIED</span>
+              <span class="stamp-mood-display" id="stamp-mood-text">LOVED IT</span>
+              <span class="stamp-bottom-text" id="stamp-date-text">2026-07-24</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form id="finish-book-form" class="finish-form">
+        <div class="form-group">
+          <label class="form-label">How did this reading voyage feel? (Choose Mood Tag)</label>
+          <div class="mood-selector-options">
+            <label class="mood-option">
+              <input type="radio" name="mood_tag" value="Loved it" checked>
+              <div class="mood-card mood-loved">
+                <span class="mood-icon">❤️</span>
+                <span class="mood-title">Loved It</span>
+                <span class="mood-sub">A true masterpiece</span>
+              </div>
+            </label>
+
+            <label class="mood-option">
+              <input type="radio" name="mood_tag" value="It was okay">
+              <div class="mood-card mood-okay">
+                <span class="mood-icon">📖</span>
+                <span class="mood-title">It Was Okay</span>
+                <span class="mood-sub">Pleasant journey</span>
+              </div>
+            </label>
+
+            <label class="mood-option">
+              <input type="radio" name="mood_tag" value="Not for me">
+              <div class="mood-card mood-notfor me">
+                <span class="mood-icon">💔</span>
+                <span class="mood-title">Not For Me</span>
+                <span class="mood-sub">Rough waters</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="finish-personal-note" class="form-label">Personal Memory / Key Impression (Optional one-liner)</label>
+          <input type="text" id="finish-personal-note" class="form-input" placeholder="e.g. 'Read this on a rainy Sunday. The ending blew me away!'" maxlength="140">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-finish">Cancel</button>
+          <button type="submit" class="btn btn-stamp-gold" id="btn-execute-stamp">
+            <span class="stamp-btn-icon">Stamp Passport</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL: STAMP DETAIL VIEW ================= -->
+  <div id="modal-detail" class="modal-backdrop hidden">
+    <div class="modal-card detail-modal">
+      <button class="modal-close-btn" id="btn-close-detail-modal">✕</button>
+      
+      <div id="detail-modal-content">
+        <!-- Injected dynamically via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: EDIT NAME / AVATAR ================= -->
+  <div id="modal-profile" class="modal-backdrop hidden">
+    <div class="modal-card profile-modal">
+      <button class="modal-close-btn" id="btn-close-profile-modal">✕</button>
+      <h3>UPDATE PASSPORT HOLDER DETAILS</h3>
+      <form id="profile-form">
+        <div class="form-group">
+          <label for="input-profile-name" class="form-label">Passport Holder Name</label>
+          <input type="text" id="input-profile-name" class="form-input" required maxlength="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Choose Avatar Emoji</label>
+          <div class="emoji-picker-grid">
+            <button type="button" class="emoji-btn" data-emoji="📖">📖</button>
+            <button type="button" class="emoji-btn" data-emoji="🧙‍♂️">🧙‍♂️</button>
+            <button type="button" class="emoji-btn" data-emoji="🚀">🚀</button>
+            <button type="button" class="emoji-btn" data-emoji="🕵️">🕵️</button>
+            <button type="button" class="emoji-btn" data-emoji="☕">☕</button>
+            <button type="button" class="emoji-btn" data-emoji="📜">📜</button>
+            <button type="button" class="emoji-btn" data-emoji="⛵">⛵</button>
+            <button type="button" class="emoji-btn" data-emoji="🌿">🌿</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn btn-primary">Save Passport Details</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: SOUVENIR / POSTCARD REVEAL ================= -->
+  <div id="modal-souvenir" class="modal-backdrop hidden">
+    <div class="modal-card souvenir-modal">
+      <button class="modal-close-btn" id="btn-close-souvenir-modal">✕</button>
+      <div id="souvenir-modal-content">
+        <!-- Injected dynamically via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
